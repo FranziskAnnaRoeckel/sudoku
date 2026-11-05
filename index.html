@@ -1,0 +1,642 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Sudoku">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%233f5c41'/%3E%3Cpath d='M11 4v24M21 4v24M4 11h24M4 21h24' stroke='%23fff' stroke-width='2'/%3E%3C/svg%3E">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Mircs Tagesrätsel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Manrope:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: one-screen phone app, a centered column; the board is the only object with weight, everything else is quiet text and lines. */
+:root{
+  --bg:#ffffff; --surface:#f2f4f7; --ink:#141b26; --muted:#677184; --line:#d8dde5; --frame:#141b26;
+  --accent:#3f5c41; --accent-soft:#e6eee6; --peer:#f4f6f4; --err:#c2362d; --err-soft:#fbe8e6; --ok:#3f5c41; --gold:#c49a3c;
+  --f-display:"Instrument Serif", "Iowan Old Style", Georgia, serif;
+  --f-ui:"Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0e1217; --surface:#181d25; --ink:#e7ebf1; --muted:#8c96a6; --line:#2a313c; --frame:#a7b0be;
+  --accent:#93b896; --accent-soft:#1f2c21; --peer:#151a18; --err:#ff7b70; --err-soft:#3a1d1d; --ok:#93b896; --gold:#e0bd6a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0e1217; --surface:#181d25; --ink:#e7ebf1; --muted:#8c96a6; --line:#2a313c; --frame:#a7b0be;
+  --accent:#93b896; --accent-soft:#1f2c21; --peer:#151a18; --err:#ff7b70; --err-soft:#3a1d1d; --ok:#93b896; --gold:#e0bd6a; color-scheme:dark}
+
+[hidden]{display:none!important}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-ui);font-size:15px;-webkit-tap-highlight-color:transparent;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));box-sizing:border-box}
+*,*::before,*::after{box-sizing:border-box}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;touch-action:manipulation}
+button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.app{max-width:460px;margin:0 auto;min-height:100%;display:flex;flex-direction:column;padding-block:12px 20px}
+.screen{flex:1;display:flex;flex-direction:column}
+.eyebrow{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:52px;padding:0 28px;border-radius:999px;
+  background:var(--ink);color:var(--bg);font-weight:600;font-size:16px}
+.btn:active{transform:scale(.98)}
+.link{color:var(--muted);font-size:14px;font-weight:500;text-decoration:underline;text-underline-offset:3px}
+
+/* Welcome */
+#welcome{justify-content:space-between;gap:32px;padding-top:6vh}
+.w-top{display:flex;flex-direction:column;gap:6px}
+.w-greet{font-family:var(--f-display);font-size:44px;line-height:1.05;font-weight:400;margin:0;text-wrap:balance}
+.w-mid{display:flex;flex-direction:column;gap:14px}
+.w-proverb{font-family:var(--f-display);font-style:italic;font-size:34px;line-height:1.15;margin:0;text-wrap:balance}
+.w-rule{width:40px;height:1px;background:var(--frame)}
+.w-wish{font-size:17px;color:var(--ink);margin:0}
+.w-bottom{display:flex;flex-direction:column;align-items:flex-start;gap:16px}
+.w-meta{color:var(--muted);font-size:14px;margin:0}
+
+/* Difficulty */
+#pick{gap:24px;padding-top:6vh}
+#pick h2{font-family:var(--f-display);font-weight:400;font-size:36px;margin:0;line-height:1.1}
+#pick p{margin:0;color:var(--muted);line-height:1.5;max-width:34ch}
+.levels{display:flex;flex-direction:column;border-top:1px solid var(--line)}
+.level{display:grid;grid-template-columns:1fr auto;align-items:center;gap:4px 12px;text-align:left;padding:18px 4px;border-bottom:1px solid var(--line)}
+.level b{font-size:18px;font-weight:600}
+.level span{color:var(--muted);font-size:14px;grid-column:1}
+.level i{grid-row:1/3;grid-column:2;font-style:normal;color:var(--muted);font-size:20px}
+.level:active{background:var(--surface)}
+
+/* Game */
+#game{gap:14px}
+.bar{display:flex;justify-content:space-between;align-items:flex-end;gap:12px}
+.bar-l{display:flex;flex-direction:column;gap:2px;min-width:0}
+.bar-title{font-family:var(--f-display);font-size:26px;line-height:1.1}
+.bar-r{display:flex;align-items:center;gap:6px}
+.clock{text-align:right;font-variant-numeric:tabular-nums}
+.clock b{display:block;font-size:17px;font-weight:600}
+.clock span{font-size:12px;color:var(--muted);white-space:nowrap}
+.clock.late b{color:var(--err)}
+.icon-btn{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;color:var(--muted)}
+.icon-btn:active{background:var(--surface)}
+.icon-btn svg{width:22px;height:22px}
+.meta{display:flex;gap:16px;font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.meta b{color:var(--ink);font-weight:600}
+
+.board{display:grid;grid-template-columns:repeat(9,1fr);width:100%;max-width:100%;aspect-ratio:1;border:2px solid var(--frame);border-radius:6px;overflow:hidden;user-select:none}
+.cell{position:relative;display:grid;place-items:center;border-right:1px solid var(--line);border-bottom:1px solid var(--line);
+  font-size:clamp(18px,6.2vw,27px);font-weight:500;color:var(--accent);font-variant-numeric:tabular-nums;padding:0;aspect-ratio:1;min-width:0}
+.cell:nth-child(9n){border-right:0}
+.cell:nth-child(9n+3),.cell:nth-child(9n+6){border-right:2px solid var(--frame)}
+.cell:nth-child(n+19):nth-child(-n+27),.cell:nth-child(n+46):nth-child(-n+54){border-bottom:2px solid var(--frame)}
+.cell:nth-child(n+73){border-bottom:0}
+.cell.given{color:var(--ink);font-weight:700}
+.cell.peer{background:var(--peer)}
+.cell.same{background:var(--accent-soft)}
+.cell.sel{background:var(--accent);color:var(--bg)}
+.cell.sel.given{color:var(--bg)}
+.cell.err{color:var(--err);background:var(--err-soft)}
+.cell.sel.err{background:var(--err);color:var(--bg)}
+.cell.hint::after{content:"";position:absolute;bottom:14%;width:5px;height:5px;border-radius:50%;background:currentColor;opacity:.55}
+.notes{display:grid;grid-template-columns:repeat(3,1fr);width:100%;height:100%;padding:2px}
+.notes i{font-style:normal;font-size:clamp(8px,2.4vw,11px);font-weight:600;color:var(--muted);display:grid;place-items:center;line-height:1}
+.cell.sel .notes i{color:var(--bg)}
+.board.solved .cell{color:var(--ink)}
+.board.solved{border-color:var(--ok)}
+
+.tools{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+.tool{display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px 0;border-radius:10px;font-size:12px;font-weight:600;color:var(--muted);position:relative}
+.tool svg{width:24px;height:24px}
+.tool:active{background:var(--surface)}
+.tool[aria-pressed="true"]{color:var(--accent)}
+.tool[aria-pressed="true"] .pill{background:var(--accent);color:var(--bg)}
+.tool .pill{position:absolute;top:2px;right:calc(50% - 26px);min-width:20px;height:18px;padding:0 5px;border-radius:9px;background:var(--surface);color:var(--muted);font-size:11px;display:grid;place-items:center}
+.tool:disabled{opacity:.35}
+.pad{display:grid;grid-template-columns:repeat(9,1fr);gap:4px}
+.key{display:flex;flex-direction:column;align-items:center;justify-content:center;height:58px;border-radius:10px;background:var(--surface);font-size:24px;font-weight:600;color:var(--accent)}
+.key small{font-size:10px;color:var(--muted);font-weight:600;margin-top:1px}
+.key:active{background:var(--accent-soft)}
+.key.done{visibility:hidden}
+.notes-on .key{color:var(--muted)}
+
+/* Solved / missed panel */
+.panel{border-top:1px solid var(--line);padding-top:18px;display:flex;flex-direction:column;gap:14px}
+.panel h3{font-family:var(--f-display);font-weight:400;font-size:32px;margin:0;line-height:1.1}
+.facts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.fact{display:flex;flex-direction:column;gap:2px}
+.fact b{font-size:22px;font-weight:600;font-variant-numeric:tabular-nums}
+.fact span{font-size:12px;color:var(--muted)}
+.panel p{margin:0;color:var(--muted);line-height:1.5}
+
+/* Stats sheet */
+.sheet{position:fixed;inset:0;background:var(--bg);z-index:20;overflow-y:auto;
+  padding:calc(env(safe-area-inset-top,0px) + 16px) max(16px, env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom,0px) + 24px) max(16px, env(safe-area-inset-left,0px))}
+.sheet-in{max-width:460px;margin:0 auto;display:flex;flex-direction:column;gap:26px}
+.sheet-head{display:flex;justify-content:space-between;align-items:center}
+.sheet h2{font-family:var(--f-display);font-weight:400;font-size:34px;margin:0}
+.big{display:grid;grid-template-columns:1fr 1fr;gap:18px 12px}
+.big div{display:flex;flex-direction:column;gap:2px}
+.big b{font-size:34px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1.1}
+.big span{font-size:13px;color:var(--muted)}
+.week{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;text-align:center}
+.day{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+.dot{width:30px;height:30px;border-radius:50%;border:1.5px solid var(--line);display:grid;place-items:center}
+.dot.ok{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.dot.miss{border-style:dashed}
+.dot.today{border-color:var(--accent)}
+.dot svg{width:16px;height:16px}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:10px 0;border-bottom:1px solid var(--line);font-size:14px}
+th{font-size:12px;color:var(--muted);font-weight:600;letter-spacing:.06em;text-transform:uppercase}
+td:not(:first-child),th:not(:first-child){text-align:right}
+.loading{flex:1;display:grid;place-items:center;color:var(--muted)}
+.confetti{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:30}
+@media (prefers-reduced-motion:no-preference){
+  .board.celebrate .cell{animation:pop .55s ease-out both;animation-delay:calc(var(--d) * 40ms)}
+  @keyframes pop{0%{transform:scale(1)}45%{transform:scale(1.16);background:var(--accent-soft);color:var(--accent)}100%{transform:scale(1)}}
+  .panel.enter{animation:rise .5s .7s ease-out both}
+  .screen{animation:rise .35s ease-out both}
+  @keyframes rise{from{transform:translateY(8px)}to{transform:none}}
+}
+@media (max-height:700px){.key{height:50px}.w-greet{font-size:38px}.w-proverb{font-size:29px}}
+</style>
+
+</head>
+<body>
+<div class="app" id="app">
+  <section class="screen" id="welcome" hidden>
+    <div class="w-top">
+      <span class="eyebrow" id="w-date"></span>
+      <h1 class="w-greet" id="w-greet"></h1>
+    </div>
+    <div class="w-mid">
+      <span class="eyebrow">Sprichwort des Tages</span>
+      <p class="w-proverb" id="w-proverb"></p>
+      <div class="w-rule"></div>
+      <p class="w-wish">Viel Spass beim Knobeln!</p>
+    </div>
+    <div class="w-bottom">
+      <button class="btn" id="w-go" type="button">Los geht's</button>
+      <p class="w-meta" id="w-meta"></p>
+    </div>
+  </section>
+
+  <section class="screen" id="pick" hidden>
+    <span class="eyebrow" id="p-date"></span>
+    <h2>Wie viel Knobeln darf es heute sein?</h2>
+    <p>Du wählst einmal pro Tag. Danach gilt das Rätsel bis Mitternacht.</p>
+    <div class="levels">
+      <button class="level" type="button" data-diff="leicht"><b>Leicht</b><span>Viele Zahlen vorgegeben, zum Aufwärmen</span><i>→</i></button>
+      <button class="level" type="button" data-diff="mittel"><b>Mittel</b><span>Ein gutes Rätsel für den Kaffee</span><i>→</i></button>
+      <button class="level" type="button" data-diff="schwer"><b>Schwer</b><span>Wenige Zahlen, braucht Geduld und Notizen</span><i>→</i></button>
+    </div>
+  </section>
+
+  <section class="screen" id="game" hidden>
+    <div class="bar">
+      <div class="bar-l">
+        <span class="eyebrow" id="g-date"></span>
+        <span class="bar-title" id="g-diff"></span>
+      </div>
+      <div class="bar-r">
+        <div class="clock" id="g-clock"><b id="g-left">--:--</b><span>bis Mitternacht</span></div>
+        <button class="icon-btn" id="open-stats" type="button" aria-label="Statistik öffnen">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 20V11M12 20V4M19 20v-6"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="meta"><span>Zeit <b id="g-time">0:00</b></span><span>Fehler <b id="g-err">0</b></span><span>Tipps <b id="g-hints">0</b>/3</span></div>
+    <div class="board" id="board" role="grid" aria-label="Sudoku-Feld"></div>
+    <div id="controls" class="screen" style="animation:none;gap:14px;flex:0">
+      <div class="tools">
+        <button class="tool" id="t-undo" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>Zurück</button>
+        <button class="tool" id="t-erase" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 20H9L4 15a2 2 0 0 1 0-2.8L13.2 3a2 2 0 0 1 2.8 0L20 7a2 2 0 0 1 0 2.8L11 19"/></svg>Löschen</button>
+        <button class="tool" id="t-notes" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>Notizen<span class="pill" id="notes-pill">aus</span></button>
+        <button class="tool" id="t-hint" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V16h8v-1.3A7 7 0 0 0 12 2Z"/></svg>Tipp<span class="pill" id="hint-pill">3</span></button>
+      </div>
+      <div class="pad" id="pad"></div>
+    </div>
+    <div class="panel" id="panel" hidden></div>
+  </section>
+
+  <div class="loading" id="loading">Rätsel wird vorbereitet …</div>
+</div>
+
+<div class="sheet" id="stats" hidden>
+  <div class="sheet-in">
+    <div class="sheet-head">
+      <h2>Mircs Statistik</h2>
+      <button class="icon-btn" id="close-stats" type="button" aria-label="Statistik schliessen">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
+    </div>
+    <div class="big" id="s-big"></div>
+    <div>
+      <div class="eyebrow" style="margin-bottom:12px">Letzte 7 Tage</div>
+      <div class="week" id="s-week"></div>
+    </div>
+    <div>
+      <div class="eyebrow" style="margin-bottom:4px">Nach Schwierigkeit</div>
+      <table><thead><tr><th>Stufe</th><th>Gelöst</th><th>Bestzeit</th><th>Ø Zeit</th></tr></thead><tbody id="s-table"></tbody></table>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+"use strict";
+const NAME = "Mirc";
+const KEY = "mirc-sudoku-v1";
+const MAX_HINTS = 3;
+const TARGET = { leicht: 38, mittel: 31, schwer: 25 };
+const DIFF_LABEL = { leicht: "Leicht", mittel: "Mittel", schwer: "Schwer" };
+
+const PROVERBS = [
+  "Übung macht den Meister.","Gut Ding will Weile haben.","Aller Anfang ist schwer.","Morgenstund hat Gold im Mund.",
+  "Wer A sagt, muss auch B sagen.","Steter Tropfen höhlt den Stein.","Geduld bringt Rosen.","Ende gut, alles gut.",
+  "Der Weg ist das Ziel.","In der Ruhe liegt die Kraft.","Ohne Fleiss kein Preis.","Was du heute kannst besorgen, das verschiebe nicht auf morgen.",
+  "Rom wurde auch nicht an einem Tag erbaut.","Wo ein Wille ist, ist auch ein Weg.","Eile mit Weile.","Wer rastet, der rostet.",
+  "Viele Wege führen nach Rom.","Kleinvieh macht auch Mist.","Probieren geht über Studieren.","Der frühe Vogel fängt den Wurm.",
+  "Auch ein blindes Huhn findet mal ein Korn.","Es ist noch kein Meister vom Himmel gefallen.","Hinterher ist man immer schlauer.","Lieber spät als nie.",
+  "Wer zuletzt lacht, lacht am besten.","Reden ist Silber, Schweigen ist Gold.","Ordnung ist das halbe Leben.","Kommt Zeit, kommt Rat.",
+  "Not macht erfinderisch.","Aus Fehlern wird man klug.","Wer wagt, gewinnt.","Gut gekaut ist halb verdaut.",
+  "Man lernt nie aus.","Es ist nicht alles Gold, was glänzt.","Doppelt genäht hält besser.","Stille Wasser sind tief.",
+  "Langsam, aber sicher.","Wer suchet, der findet.","Morgen ist auch noch ein Tag.","Der Klügere gibt nach.",
+  "Was lange währt, wird endlich gut.","Die Hoffnung stirbt zuletzt.","Einmal ist keinmal.","Wie man in den Wald hineinruft, so schallt es heraus.",
+  "Zeit ist Geld.","Mit Speck fängt man Mäuse.","Wissen ist Macht.","Vier Augen sehen mehr als zwei.",
+  "Jeder Topf findet seinen Deckel.","Neue Besen kehren gut.","Unverhofft kommt oft.","Gleich und gleich gesellt sich gern.",
+  "Hunger ist der beste Koch.","Es ist noch nicht aller Tage Abend.","Erst die Arbeit, dann das Vergnügen.","Kleider machen Leute.",
+  "Lügen haben kurze Beine.","Sich regen bringt Segen.","Wer im Glashaus sitzt, soll nicht mit Steinen werfen.","Den Seinen gibt's der Herr im Schlaf."
+];
+
+/* ---------- dates ---------- */
+const pad2 = n => String(n).padStart(2, "0");
+const dkey = d => `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
+const fromKey = k => { const [y,m,d] = k.split("-").map(Number); return new Date(y, m-1, d); };
+const addDays = (k, n) => { const d = fromKey(k); d.setDate(d.getDate()+n); return dkey(d); };
+const dayNum = k => Math.round(fromKey(k).getTime()/864e5 - new Date(2026,0,1).getTime()/864e5);
+const fmtLong = k => fromKey(k).toLocaleDateString("de-CH", { weekday:"long", day:"numeric", month:"long" });
+const fmtShort = k => fromKey(k).toLocaleDateString("de-CH", { weekday:"short", day:"numeric", month:"short" });
+const fmtTime = ms => { const s = Math.floor(ms/1000), h = Math.floor(s/3600), m = Math.floor(s%3600/60), x = s%60;
+  return h ? `${h}:${pad2(m)}:${pad2(x)}` : `${m}:${pad2(x)}`; };
+
+/* ---------- seeded puzzle generator ---------- */
+function hash(str){ let h = 1779033703 ^ str.length; for (let i=0;i<str.length;i++){ h = Math.imul(h ^ str.charCodeAt(i), 3432918353); h = h<<13 | h>>>19; } return () => { h = Math.imul(h ^ h>>>16, 2246822507); h = Math.imul(h ^ h>>>13, 3266489909); return (h ^= h>>>16) >>> 0; }; }
+function mulberry(a){ return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a>>>15, 1 | a); t = t + Math.imul(t ^ t>>>7, 61 | t) ^ t; return ((t ^ t>>>14) >>> 0) / 4294967296; }; }
+function shuffle(arr, rnd){ for (let i=arr.length-1;i>0;i--){ const j = Math.floor(rnd()*(i+1)); [arr[i],arr[j]] = [arr[j],arr[i]]; } return arr; }
+
+const PEERS = Array.from({length:81}, (_, i) => {
+  const r = Math.floor(i/9), c = i%9, br = r-r%3, bc = c-c%3, s = new Set();
+  for (let k=0;k<9;k++){ s.add(r*9+k); s.add(k*9+c); s.add((br+Math.floor(k/3))*9 + bc + k%3); }
+  s.delete(i); return [...s];
+});
+const cand = (g, i) => { let used = 0; for (const p of PEERS[i]) used |= 1 << g[p]; return 0x3FE & ~used; };
+const bits = m => { let c = 0; while (m){ m &= m-1; c++; } return c; };
+
+function solveFill(g, rnd){
+  let best = -1, bm = 0, bc = 10;
+  for (let i=0;i<81;i++) if (!g[i]){ const m = cand(g,i), c = bits(m); if (!c) return false; if (c < bc){ bc=c; best=i; bm=m; if (c===1) break; } }
+  if (best < 0) return true;
+  const ds = []; for (let d=1; d<=9; d++) if (bm & (1<<d)) ds.push(d);
+  for (const d of shuffle(ds, rnd)){ g[best] = d; if (solveFill(g, rnd)) return true; }
+  g[best] = 0; return false;
+}
+function countSolutions(src){
+  const g = src.slice(); let count = 0;
+  (function rec(){
+    if (count > 1) return;
+    let best = -1, bm = 0, bc = 10;
+    for (let i=0;i<81;i++) if (!g[i]){ const m = cand(g,i), c = bits(m); if (!c) return; if (c < bc){ bc=c; best=i; bm=m; if (c===1) break; } }
+    if (best < 0){ count++; return; }
+    for (let d=1; d<=9; d++) if (bm & (1<<d)){ g[best] = d; rec(); if (count > 1) break; }
+    g[best] = 0;
+  })();
+  return count;
+}
+function makePuzzle(seedStr, diff){
+  const rnd = mulberry(hash(seedStr)());
+  const sol = Array(81).fill(0); solveFill(sol, rnd);
+  const puz = sol.slice(); let givens = 81;
+  const order = shuffle([...Array(41).keys()], rnd);
+  for (const i of order){
+    if (givens <= TARGET[diff]) break;
+    const j = 80 - i, a = puz[i], b = puz[j];
+    puz[i] = 0; puz[j] = 0;
+    if (countSolutions(puz) === 1) givens -= (i === j ? 1 : 2);
+    else { puz[i] = a; puz[j] = b; }
+  }
+  return { puzzle: puz, solution: sol };
+}
+window.__sudoku = { makePuzzle, countSolutions };
+
+/* ---------- storage: local first, synced to claude.ai when available ---------- */
+let state = { days: {} };
+try { const raw = localStorage.getItem(KEY); if (raw) state = Object.assign({ days:{} }, JSON.parse(raw)); } catch (e) {}
+let syncRef = null, syncTimer = null, syncBusy = false, syncAgain = false;
+function save(){
+  try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
+  if (syncRef){ clearTimeout(syncTimer); syncTimer = setTimeout(pushSync, 1500); }
+}
+async function pushSync(){
+  if (!syncRef) return;
+  if (syncBusy){ syncAgain = true; return; }
+  syncBusy = true;
+  try { await syncRef.set({ v: 1, days: JSON.stringify(state.days), updated: Date.now() }); } catch (e) {}
+  syncBusy = false;
+  if (syncAgain){ syncAgain = false; pushSync(); }
+}
+const dayScore = d => d ? (d.solved ? 1e13 : 0) + (d.elapsed || 0) + (d.grid ? d.grid.filter(Boolean).length : 0) : -1;
+async function initSync(){
+  try {
+    if (!window.claude || !window.claude.use) return;
+    const db = await window.claude.use("db"); if (!db) return;
+    const user = await window.claude.use("user"); const id = user && await user.id(); if (!id) return;
+    const ref = db.collection("data/users/" + id).doc("sudoku");
+    const snap = await Promise.race([ref.get(), new Promise((_, r) => setTimeout(() => r(new Error("timeout")), 10000))]);
+    if (snap.exists){
+      let remote = {}; try { remote = JSON.parse(snap.data().days || "{}"); } catch (e) {}
+      let changed = false;
+      for (const k of Object.keys(remote)){
+        if (k === today && cur && dayScore(state.days[k]) >= dayScore(remote[k])) continue;
+        if (dayScore(remote[k]) > dayScore(state.days[k])){ state.days[k] = remote[k]; changed = true; }
+      }
+      if (changed){ try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} route(); }
+    }
+    syncRef = ref; pushSync();
+  } catch (e) {}
+}
+
+/* ---------- app state ---------- */
+const $ = id => document.getElementById(id);
+let today = dkey(new Date());
+let cur = null;          // today's day record
+let sel = -1, notesMode = false, undo = [];
+let welcomed = false, lastTick = Date.now();
+
+function show(id){ for (const s of ["welcome","pick","game","loading"]) $(s).hidden = s !== id; }
+
+function greet(){ const h = new Date().getHours(); return h < 11 ? "Guten Morgen" : h < 18 ? "Hallo" : "Guten Abend"; }
+
+function route(){
+  today = dkey(new Date());
+  cur = state.days[today] || null;
+  if (!welcomed) return renderWelcome();
+  if (!cur) return renderPick();
+  renderGame();
+}
+
+function renderWelcome(){
+  $("w-date").textContent = fmtLong(today);
+  $("w-greet").textContent = `${greet()}, ${NAME}`;
+  const n = dayNum(today);
+  $("w-proverb").textContent = "„" + PROVERBS[((n % PROVERBS.length) + PROVERBS.length) % PROVERBS.length].replace(/\.$/, "") + "“";
+  const st = stats(), d = state.days[today];
+  $("w-meta").textContent = d && d.solved ? "Das heutige Rätsel ist schon gelöst. Stark!"
+    : st.streak > 0 ? `Deine Serie: ${st.streak} ${st.streak === 1 ? "Tag" : "Tage"} in Folge`
+    : d ? "Dein Rätsel von heute wartet schon auf dich." : "Heute wartet ein neues Rätsel auf dich.";
+  $("w-go").textContent = d && d.solved ? "Ergebnis ansehen" : d ? "Weiterknobeln" : "Los geht's";
+  show("welcome");
+}
+$("w-go").onclick = () => { welcomed = true; route(); };
+
+function renderPick(){ $("p-date").textContent = fmtLong(today); show("pick"); }
+document.querySelectorAll(".level").forEach(b => b.onclick = () => {
+  const diff = b.dataset.diff;
+  show("loading");
+  setTimeout(() => {
+    const { puzzle, solution } = makePuzzle(`mirc|${today}|${diff}`, diff);
+    state.days[today] = { diff, puzzle, solution, grid: puzzle.slice(), notes: Array(81).fill(0),
+      hint: [], mistakes: 0, hints: 0, elapsed: 0, solved: false };
+    save(); sel = -1; undo = []; route();
+  }, 30);
+});
+
+/* ---------- board ---------- */
+const board = $("board"), padEl = $("pad");
+for (let i=0;i<81;i++){ const b = document.createElement("button"); b.type = "button"; b.className = "cell"; b.dataset.i = i; b.style.setProperty("--d", Math.floor(i/9) + i%9); b.setAttribute("role","gridcell"); board.appendChild(b); }
+for (let d=1; d<=9; d++){ const b = document.createElement("button"); b.type = "button"; b.className = "key"; b.dataset.d = d; b.innerHTML = `${d}<small></small>`; padEl.appendChild(b); }
+board.addEventListener("click", e => { const c = e.target.closest(".cell"); if (!c || !cur || cur.solved) return; sel = +c.dataset.i; drawBoard(); });
+padEl.addEventListener("click", e => { const k = e.target.closest(".key"); if (k) input(+k.dataset.d); });
+
+const isLocked = i => cur.puzzle[i] !== 0 || cur.hint.includes(i) || (cur.grid[i] && cur.grid[i] === cur.solution[i]);
+
+function input(d){
+  if (!cur || cur.solved || sel < 0 || isLocked(sel)) return;
+  const i = sel;
+  if (notesMode){
+    if (cur.grid[i]) return;
+    undo.push({ i, v: cur.grid[i], n: cur.notes[i] });
+    cur.notes[i] ^= 1 << d;
+  } else {
+    if (cur.grid[i] === d) return;
+    undo.push({ i, v: cur.grid[i], n: cur.notes[i], peers: PEERS[i].map(p => [p, cur.notes[p]]) });
+    cur.grid[i] = d; cur.notes[i] = 0;
+    if (d !== cur.solution[i]) { cur.mistakes++; buzz(); }
+    else for (const p of PEERS[i]) cur.notes[p] &= ~(1 << d);
+  }
+  afterMove();
+}
+function erase(){
+  if (!cur || cur.solved || sel < 0 || isLocked(sel)) return;
+  if (!cur.grid[sel] && !cur.notes[sel]) return;
+  undo.push({ i: sel, v: cur.grid[sel], n: cur.notes[sel] });
+  cur.grid[sel] = 0; cur.notes[sel] = 0; afterMove();
+}
+function doUndo(){
+  if (!cur || cur.solved) return;
+  const u = undo.pop(); if (!u) return;
+  cur.grid[u.i] = u.v; cur.notes[u.i] = u.n;
+  if (u.peers) for (const [p, n] of u.peers) cur.notes[p] = n;
+  sel = u.i; afterMove();
+}
+function hint(){
+  if (!cur || cur.solved || cur.hints >= MAX_HINTS) return;
+  let i = sel >= 0 && cur.grid[sel] !== cur.solution[sel] ? sel : -1;
+  if (i < 0){
+    const open = []; for (let k=0;k<81;k++) if (cur.grid[k] !== cur.solution[k]) open.push(k);
+    if (!open.length) return; i = open[Math.floor(Math.random()*open.length)];
+  }
+  const d = cur.solution[i];
+  cur.grid[i] = d; cur.notes[i] = 0; cur.hint.push(i); cur.hints++;
+  for (const p of PEERS[i]) cur.notes[p] &= ~(1 << d);
+  sel = i; afterMove();
+}
+function buzz(){ try { navigator.vibrate && navigator.vibrate(30); } catch (e) {} }
+function afterMove(){
+  let justSolved = false;
+  if (cur.grid.every((v, k) => v === cur.solution[k])){ cur.solved = true; cur.solvedAt = Date.now(); sel = -1; justSolved = true; }
+  save(); renderGame();
+  if (justSolved) celebrate();
+}
+
+/* ---------- celebration ---------- */
+function celebrate(){
+  try { navigator.vibrate && navigator.vibrate([25, 60, 25, 60, 60]); } catch (e) {}
+  board.classList.remove("celebrate"); void board.offsetWidth; board.classList.add("celebrate");
+  $("panel").classList.add("enter");
+  setTimeout(() => board.classList.remove("celebrate"), 1800);
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const cs = getComputedStyle(document.documentElement);
+  const colors = ["--accent", "--gold", "--ink", "--accent", "--gold"].map(t => cs.getPropertyValue(t).trim());
+  const cv = document.createElement("canvas"); cv.className = "confetti"; document.body.appendChild(cv);
+  const W = innerWidth, H = innerHeight, dpr = Math.min(devicePixelRatio || 1, 2);
+  cv.width = W * dpr; cv.height = H * dpr; const ctx = cv.getContext("2d"); ctx.scale(dpr, dpr);
+  const parts = [];
+  for (let k = 0; k < 150; k++){
+    const left = k % 2 === 0, ang = (left ? -60 : -120) + (Math.random() - .5) * 50;
+    const sp = 9 + Math.random() * 9, a = ang * Math.PI / 180;
+    parts.push({ x: left ? -10 : W + 10, y: H * .72, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
+      w: 6 + Math.random() * 6, h: 3 + Math.random() * 4, r: Math.random() * 6, vr: (Math.random() - .5) * .4,
+      c: colors[k % colors.length], delay: Math.random() * 12 });
+  }
+  const start = performance.now(), DUR = 3400;
+  (function frame(now){
+    const t = now - start; ctx.clearRect(0, 0, W, H);
+    ctx.globalAlpha = t > DUR - 900 ? Math.max(0, (DUR - t) / 900) : 1;
+    for (const p of parts){
+      if (p.delay > 0){ p.delay--; continue; }
+      p.vy += .32; p.vx *= .985; p.vy *= .985; p.x += p.vx; p.y += p.vy; p.r += p.vr;
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.r); ctx.scale(1, Math.cos(p.r * 2));
+      ctx.fillStyle = p.c; ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h); ctx.restore();
+    }
+    if (t < DUR) requestAnimationFrame(frame); else cv.remove();
+  })(start);
+}
+
+$("t-undo").onclick = doUndo;
+$("t-erase").onclick = erase;
+$("t-hint").onclick = hint;
+$("t-notes").onclick = () => { notesMode = !notesMode; drawTools(); };
+
+function drawTools(){
+  $("t-notes").setAttribute("aria-pressed", String(notesMode));
+  $("notes-pill").textContent = notesMode ? "an" : "aus";
+  padEl.classList.toggle("notes-on", notesMode);
+  $("hint-pill").textContent = MAX_HINTS - cur.hints;
+  $("t-hint").disabled = cur.hints >= MAX_HINTS;
+  $("t-undo").disabled = !undo.length;
+}
+
+function drawBoard(){
+  const g = cur.grid, sv = sel >= 0 ? g[sel] : 0;
+  const sr = Math.floor(sel/9), sc = sel%9, sb = Math.floor(sr/3)*3 + Math.floor(sc/3);
+  [...board.children].forEach((el, i) => {
+    const v = g[i], r = Math.floor(i/9), c = i%9, b = Math.floor(r/3)*3 + Math.floor(c/3);
+    const cls = ["cell"];
+    if (cur.puzzle[i]) cls.push("given");
+    if (cur.hint.includes(i)) cls.push("hint");
+    if (v && v !== cur.solution[i]) cls.push("err");
+    if (i === sel) cls.push("sel");
+    else if (sv && v === sv) cls.push("same");
+    else if (sel >= 0 && (r === sr || c === sc || b === sb)) cls.push("peer");
+    el.className = cls.join(" ");
+    if (v) { el.textContent = v; el.setAttribute("aria-label", `Zeile ${r+1}, Spalte ${c+1}: ${v}`); }
+    else if (cur.notes[i]) {
+      let h = '<span class="notes">'; for (let d=1; d<=9; d++) h += `<i>${cur.notes[i] & (1<<d) ? d : ""}</i>`;
+      el.innerHTML = h + "</span>"; el.setAttribute("aria-label", `Zeile ${r+1}, Spalte ${c+1}: Notizen`);
+    } else { el.textContent = ""; el.setAttribute("aria-label", `Zeile ${r+1}, Spalte ${c+1}: leer`); }
+  });
+  board.classList.toggle("solved", cur.solved);
+  const counts = Array(10).fill(0); g.forEach((v, k) => { if (v && v === cur.solution[k]) counts[v]++; });
+  [...padEl.children].forEach((k, idx) => { const d = idx+1, left = 9 - counts[d]; k.classList.toggle("done", left <= 0); k.querySelector("small").textContent = left; });
+}
+
+function renderGame(){
+  show("game");
+  $("g-date").textContent = fmtShort(today);
+  $("g-diff").textContent = DIFF_LABEL[cur.diff];
+  $("g-err").textContent = cur.mistakes;
+  $("g-hints").textContent = cur.hints;
+  $("g-time").textContent = fmtTime(cur.elapsed);
+  drawBoard(); drawTools(); tickClock();
+  $("controls").hidden = cur.solved;
+  const panel = $("panel");
+  if (cur.solved){
+    const st = stats();
+    panel.hidden = false;
+    panel.innerHTML = `<span class="eyebrow">Gelöst</span><h3>Geschafft, ${NAME}!</h3>
+      <div class="facts"><div class="fact"><b>${fmtTime(cur.elapsed)}</b><span>Zeit</span></div>
+      <div class="fact"><b>${cur.mistakes}</b><span>Fehler</span></div>
+      <div class="fact"><b>${st.streak}</b><span>${st.streak === 1 ? "Tag" : "Tage"} Serie</span></div></div>
+      <p>Morgen um Mitternacht wartet das nächste Rätsel.</p>
+      <div><button class="link" type="button" id="p-stats">Statistik ansehen</button></div>`;
+    $("p-stats").onclick = openStats;
+  } else panel.hidden = true;
+}
+
+/* ---------- clock ---------- */
+function tickClock(){
+  const now = new Date(), mid = new Date(now); mid.setHours(24,0,0,0);
+  const left = mid - now, h = Math.floor(left/36e5), m = Math.floor(left%36e5/6e4), s = Math.floor(left%6e4/1e3);
+  $("g-left").textContent = `${h}:${pad2(m)}:${pad2(s)}`;
+  $("g-clock").classList.toggle("late", left < 36e5 && !(cur && cur.solved));
+  $("g-clock").querySelector("span").textContent = cur && cur.solved ? "bis zum nächsten Rätsel" : "bis Mitternacht";
+}
+let saveCount = 0;
+setInterval(() => {
+  const now = Date.now(), dt = Math.min(now - lastTick, 5000); lastTick = now;
+  if (dkey(new Date()) !== today){ welcomed = false; sel = -1; undo = []; notesMode = false; route(); return; }
+  if (!$("game").hidden && cur && !cur.solved && document.visibilityState === "visible" && $("stats").hidden){
+    cur.elapsed += dt; $("g-time").textContent = fmtTime(cur.elapsed);
+    if (++saveCount % 10 === 0) save();
+  }
+  if (!$("game").hidden) tickClock();
+}, 1000);
+document.addEventListener("visibilitychange", () => { lastTick = Date.now(); if (document.visibilityState === "hidden" && cur) save(); });
+
+/* ---------- stats ---------- */
+function stats(){
+  const keys = Object.keys(state.days).filter(k => k <= today).sort();
+  const solved = new Set(keys.filter(k => state.days[k].solved));
+  let streak = 0, k = solved.has(today) ? today : addDays(today, -1);
+  while (solved.has(k)){ streak++; k = addDays(k, -1); }
+  let best = 0, run = 0, prev = null;
+  for (const s of [...solved].sort()){ run = prev && addDays(prev, 1) === s ? run + 1 : 1; best = Math.max(best, run); prev = s; }
+  const per = {};
+  for (const d of ["leicht","mittel","schwer"]){
+    const t = [...solved].filter(s => state.days[s].diff === d).map(s => state.days[s].elapsed);
+    per[d] = { n: t.length, best: t.length ? Math.min(...t) : null, avg: t.length ? t.reduce((a,b)=>a+b,0)/t.length : null };
+  }
+  const first = keys[0];
+  const span = first ? dayNum(today) - dayNum(first) + 1 : 0;
+  return { streak, best, solved: solved.size, played: keys.length, span, per };
+}
+function openStats(){
+  const st = stats();
+  const rate = st.span ? Math.round(st.solved / st.span * 100) : 0;
+  $("s-big").innerHTML = `<div><b>${st.streak}</b><span>Aktuelle Serie</span></div><div><b>${st.best}</b><span>Längste Serie</span></div>
+    <div><b>${st.solved}</b><span>Rätsel gelöst</span></div><div><b>${rate}%</b><span>der Tage gelöst</span></div>`;
+  let w = "";
+  for (let i=6; i>=0; i--){
+    const k = addDays(today, -i), d = state.days[k], isT = i === 0;
+    const cls = d && d.solved ? "ok" : isT ? "today" : "miss";
+    const mark = d && d.solved ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"/></svg>' : "";
+    w += `<div class="day"><span class="dot ${cls}" title="${fmtShort(k)}">${mark}</span>${fromKey(k).toLocaleDateString("de-CH",{weekday:"short"}).replace(".","")}</div>`;
+  }
+  $("s-week").innerHTML = w;
+  $("s-table").innerHTML = ["leicht","mittel","schwer"].map(d => { const p = st.per[d];
+    return `<tr><td>${DIFF_LABEL[d]}</td><td>${p.n}</td><td>${p.best != null ? fmtTime(p.best) : "–"}</td><td>${p.avg != null ? fmtTime(p.avg) : "–"}</td></tr>`; }).join("");
+  $("stats").hidden = false;
+}
+$("open-stats").onclick = openStats;
+$("close-stats").onclick = () => { $("stats").hidden = true; lastTick = Date.now(); };
+
+/* ---------- keyboard ---------- */
+document.addEventListener("keydown", e => {
+  if ($("game").hidden || !cur || cur.solved) return;
+  if (e.key >= "1" && e.key <= "9") input(+e.key);
+  else if (e.key === "Backspace" || e.key === "Delete" || e.key === "0") erase();
+  else if (e.key === "n" || e.key === "N") { notesMode = !notesMode; drawTools(); }
+  else if (e.key.startsWith("Arrow")){
+    if (sel < 0) sel = 0;
+    else { const r = Math.floor(sel/9), c = sel%9;
+      sel = e.key === "ArrowUp" ? ((r+8)%9)*9+c : e.key === "ArrowDown" ? ((r+1)%9)*9+c : e.key === "ArrowLeft" ? r*9+(c+8)%9 : r*9+(c+1)%9; }
+    e.preventDefault(); drawBoard();
+  }
+});
+
+route();
+initSync();
+})();
+</script>
+
+</body>
+</html>
